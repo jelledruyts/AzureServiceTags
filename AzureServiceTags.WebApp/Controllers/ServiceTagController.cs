@@ -19,6 +19,7 @@ namespace AzureServiceTags.WebApp.Controllers
         }
 
         [HttpPost(nameof(ClearCache))]
+        [HttpGet(nameof(ClearCache))]
         public async Task<IActionResult> ClearCache()
         {
             await this.serviceTagProvider.ClearCacheAsync();

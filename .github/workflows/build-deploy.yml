@@ -1,0 +1,35 @@
+name: Build and Deploy AzureServiceTags
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - main
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    # Prepare
+    - name: Check out repository
+      uses: actions/checkout@v2
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '3.1.x'
+    # Build
+    - name: Determine version
+      run: echo "APP_VERSION=$(date +'%Y.%m.%d').$GITHUB_RUN_NUMBER" >> $GITHUB_ENV
+    - name: Install dependencies
+      run: dotnet restore "AzureServiceTags.WebApp/AzureServiceTags.WebApp.csproj"
+    - name: Build
+      run: dotnet build "AzureServiceTags.WebApp/AzureServiceTags.WebApp.csproj" --configuration Release --no-restore /p:Version=${{ env.APP_VERSION }} /p:SourceRevisionId=$GITHUB_SHA
+    # Deploy
+    - name: Publish AzureServiceTags.WebApp
+      run: dotnet publish "AzureServiceTags.WebApp/AzureServiceTags.WebApp.csproj" --configuration Release --no-build --output "./packages/AzureServiceTags.WebApp"
+    - name: Deploy AzureServiceTags.WebApp
+      uses: Azure/webapps-deploy@v2
+      with:
+        app-name: azservicetags
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_AZURESERVICETAGS_WEBAPP }}
+        package: "./packages/AzureServiceTags.WebApp"

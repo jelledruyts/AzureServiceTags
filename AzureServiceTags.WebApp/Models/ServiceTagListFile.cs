@@ -15,8 +15,17 @@ namespace AzureServiceTags.WebApp.Models
 
         public bool NeedsRefresh()
         {
-            // The data is refreshed weekly, give it one extra day buffer before downloading again.
-            return (DateTimeOffset.Now.Date - this.Metadata.ValidFromDate.Date).Days >= 8;
+            if ((DateTimeOffset.UtcNow - this.Metadata.LastDownloadAttemptedTime).TotalHours <= 1)
+            {
+                // Don't attempt to refresh if the last attempt was less than an hour ago.
+                return false;
+            }
+            else if (this.Metadata.LastDownloadSucceededTime.HasValue && (DateTimeOffset.UtcNow - this.Metadata.LastDownloadSucceededTime.Value).TotalHours <= 24)
+            {
+                // Don't attempt to refresh if the last succeeded attempt was less than a day ago (service tags are published weekly).
+                return false;
+            }
+            return true;
         }
     }
 }

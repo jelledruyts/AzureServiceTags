@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -29,9 +28,16 @@ namespace AzureServiceTags.WebApp.Services
 
         public async Task<IList<ServiceTagListFile>> GetAllServiceTagListFilesAsync()
         {
-            var tasks = Constants.CloudIds.AllCloudIds.Select(id => GetServiceTagListFileAsync(id));
-            await Task.WhenAll(tasks);
-            return tasks.Select(t => t.Result).ToArray();
+            var serviceTagListFiles = new List<ServiceTagListFile>(Constants.CloudIds.AllCloudIds.Length);
+            foreach (var cloudId in Constants.CloudIds.AllCloudIds)
+            {
+                var serviceTagListFile = await GetServiceTagListFileAsync(cloudId);
+                if (serviceTagListFile.ServiceTagList != null)
+                {
+                    serviceTagListFiles.Add(serviceTagListFile);
+                }
+            }
+            return serviceTagListFiles;
         }
 
         public async Task<ServiceTagListFile> GetServiceTagListFileAsync(string cloudId)
@@ -64,69 +70,73 @@ namespace AzureServiceTags.WebApp.Services
         {
             var fileName = GetServiceTagListFileName(cloudId);
             var metadataFileName = GetServiceTagListMetadataFileName(cloudId);
+
             if (forceRefresh || !File.Exists(fileName))
             {
-                this.logger.LogDebug($"Downloading service tag list for cloud \"{cloudId}\" to file \"{fileName}\"");
+                this.logger.LogInformation($"Downloading service tag list for cloud \"{cloudId}\" to file \"{fileName}\"");
                 await DownloadServiceTagListFileAsync(cloudId, fileName, metadataFileName);
             }
-            this.logger.LogDebug($"Reading service tag list for cloud \"{cloudId}\" from file \"{fileName}\"");
-            using (var fileStream = File.OpenRead(fileName))
-            {
-                var serviceTagList = await JsonSerializer.DeserializeAsync<ServiceTagList>(fileStream, jsonSerializerOptions);
 
-                this.logger.LogDebug($"Reading service tag list metadata for cloud \"{cloudId}\" from file \"{metadataFileName}\"");
-                using (var metadataFileStream = File.OpenRead(metadataFileName))
-                {
-                    var serviceTagListMetadata = await JsonSerializer.DeserializeAsync<ServiceTagListFileMetadata>(metadataFileStream, jsonSerializerOptions);
-                    return new ServiceTagListFile(serviceTagListMetadata, serviceTagList);
-                }
-            }
+            this.logger.LogDebug($"Reading service tag list for cloud \"{cloudId}\" from file \"{fileName}\"");
+            var serviceTagList = await ReadFileAsync<ServiceTagList>(fileName);
+
+            this.logger.LogDebug($"Reading service tag list metadata for cloud \"{cloudId}\" from file \"{metadataFileName}\"");
+            var serviceTagListMetadata = await ReadFileAsync<ServiceTagListFileMetadata>(metadataFileName);
+
+            return new ServiceTagListFile(serviceTagListMetadata, serviceTagList);
         }
 
         private async Task DownloadServiceTagListFileAsync(string cloudId, string fileName, string metadataFileName)
         {
-            var downloadId = GetDownloadId(cloudId);
-            var confirmationUrl = $"https://www.microsoft.com/en-us/download/confirmation.aspx?id={downloadId}";
-            this.logger.LogDebug($"Downloading service tag confirmation page for cloud \"{cloudId}\"");
-            var httpClient = this.httpClientFactory.CreateClient();
-            var confirmationPage = await httpClient.GetStringAsync(confirmationUrl);
-            var downloadUrlStartTag = "meta http-equiv=\"refresh\" content=\"0;url=";
-            var downloadUrlStartIndex = confirmationPage.IndexOf(downloadUrlStartTag, StringComparison.InvariantCultureIgnoreCase);
-            if (downloadUrlStartIndex < 0)
+            ServiceTagListFileMetadata metadata;
+            try
             {
-                this.logger.LogError($"Could not find start of download URL in confirmation page for cloud \"{cloudId}\"");
-                throw new ArgumentException($"Could not determine download URL for cloud \"{cloudId}\".");
-            }
-            else
-            {
+                var downloadId = GetDownloadId(cloudId);
+                var confirmationUrl = $"https://www.microsoft.com/en-us/download/confirmation.aspx?id={downloadId}";
+                this.logger.LogDebug($"Downloading service tag confirmation page for cloud \"{cloudId}\"");
+                var httpClient = this.httpClientFactory.CreateClient();
+                var confirmationPage = await httpClient.GetStringAsync(confirmationUrl);
+                var downloadUrlStartTag = "meta http-equiv=\"refresh\" content=\"0;url=";
+                var downloadUrlStartIndex = confirmationPage.IndexOf(downloadUrlStartTag, StringComparison.InvariantCultureIgnoreCase);
+                if (downloadUrlStartIndex < 0)
+                {
+                    throw new ArgumentException($"Could not determine download URL for cloud \"{cloudId}\" (missing start tag).");
+                }
+
                 downloadUrlStartIndex += downloadUrlStartTag.Length;
                 var downloadUrlEndIndex = confirmationPage.IndexOf('"', downloadUrlStartIndex);
                 if (downloadUrlEndIndex < 0)
                 {
-                    this.logger.LogError($"Could not find end of download URL in confirmation page for cloud \"{cloudId}\"");
-                    throw new ArgumentException($"Could not determine download URL for cloud \"{cloudId}\".");
+                    throw new ArgumentException($"Could not determine download URL for cloud \"{cloudId}\" (missing end tag).");
                 }
-                else
+
+                var downloadUrl = confirmationPage.Substring(downloadUrlStartIndex, downloadUrlEndIndex - downloadUrlStartIndex);
+                this.logger.LogDebug($"Downloading service tag list for cloud \"{cloudId}\" from \"{downloadUrl}\"");
+                using (var response = await httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead))
+                using (var responseStream = await response.Content.ReadAsStreamAsync())
                 {
-                    var downloadUrl = confirmationPage.Substring(downloadUrlStartIndex, downloadUrlEndIndex - downloadUrlStartIndex);
-                    this.logger.LogDebug($"Downloading service tag list for cloud \"{cloudId}\" from \"{downloadUrl}\"");
-                    using (var response = await httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead))
-                    using (var responseStream = await response.Content.ReadAsStreamAsync())
+                    this.logger.LogDebug($"Saving service tag list for cloud \"{cloudId}\" to \"{fileName}\"");
+                    using (var outputStream = File.Open(fileName, FileMode.Create))
                     {
-                        this.logger.LogDebug($"Saving service tag list for cloud \"{cloudId}\" to \"{fileName}\"");
-                        using (var outputStream = File.Open(fileName, FileMode.Create))
-                        {
-                            await responseStream.CopyToAsync(outputStream);
-                        }
-                        this.logger.LogDebug($"Saving service tag list metadata for cloud \"{cloudId}\" to \"{metadataFileName}\"");
-                        var metadata = new ServiceTagListFileMetadata(downloadUrl);
-                        using (var metadataOutputStream = File.Open(metadataFileName, FileMode.Create))
-                        {
-                            await JsonSerializer.SerializeAsync<ServiceTagListFileMetadata>(metadataOutputStream, metadata, jsonSerializerOptions);
-                        }
+                        await responseStream.CopyToAsync(outputStream);
                     }
+                    metadata = new ServiceTagListFileMetadata(downloadUrl);
                 }
             }
+            catch (Exception exc)
+            {
+                this.logger.LogError(exc, $"Could not download service tag list for cloud \"{cloudId}\"");
+
+                this.logger.LogDebug($"Reading service tag list metadata for cloud \"{cloudId}\" from file \"{metadataFileName}\"");
+                metadata = await ReadFileAsync<ServiceTagListFileMetadata>(metadataFileName);
+                if (metadata == null)
+                {
+                    metadata = new ServiceTagListFileMetadata();
+                }
+                metadata.LastDownloadAttemptedTime = DateTimeOffset.UtcNow;
+            }
+            this.logger.LogDebug($"Saving service tag list metadata for cloud \"{cloudId}\" to \"{metadataFileName}\"");
+            await WriteFileAsync<ServiceTagListFileMetadata>(metadataFileName, metadata);
         }
 
         private string GetServiceTagListFileName(string cloudId)
@@ -164,6 +174,27 @@ namespace AzureServiceTags.WebApp.Services
             else
             {
                 throw new ArgumentException($"Cloud identifier \"{cloudId}\" doesn't have a downloadable service tag list.");
+            }
+        }
+
+        private async Task<T> ReadFileAsync<T>(string fileName) where T : class
+        {
+            if (!File.Exists(fileName))
+            {
+                this.logger.LogWarning($"Cannot read {typeof(T).Name} because file \"{fileName}\" does not exist.");
+                return null;
+            }
+            using (var fileStream = File.OpenRead(fileName))
+            {
+                return await JsonSerializer.DeserializeAsync<T>(fileStream, jsonSerializerOptions);
+            }
+        }
+
+        private async Task WriteFileAsync<T>(string fileName, T value)
+        {
+            using (var outputStream = File.Open(fileName, FileMode.Create))
+            {
+                await JsonSerializer.SerializeAsync<T>(outputStream, value, jsonSerializerOptions);
             }
         }
 

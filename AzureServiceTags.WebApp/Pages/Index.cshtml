@@ -13,8 +13,8 @@
         <tr>
             <th>Cloud</th>
             <th>Change Number</th>
-            <th>Version</th>
             <th>Download</th>
+            <th>Last Retrieved</th>
         </tr>
     </thead>
     <tbody>
@@ -23,8 +23,8 @@
         <tr>
             <td><code>@serviceTagListFile.ServiceTagList.Cloud</code></td>
             <td><code>@serviceTagListFile.ServiceTagList.ChangeNumber</code></td>
-            <td><code>@serviceTagListFile.Metadata.Version</code></td>
             <td><a href="@serviceTagListFile.Metadata.DownloadUrl" target="_blank">@serviceTagListFile.Metadata.FileName</a></td>
+            <td>@serviceTagListFile.Metadata.LastDownloadSucceededTime.Value.ToString("dd MMM yyyy")</td>
         </tr>
     }
     </tbody>

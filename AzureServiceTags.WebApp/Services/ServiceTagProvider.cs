@@ -50,6 +50,16 @@ namespace AzureServiceTags.WebApp.Services
             return this.serviceTagListFiles[cloudId];
         }
 
+        public Task ClearCacheAsync()
+        {
+            this.serviceTagListFiles.Clear();
+            Directory.Delete(this.basePath, true);
+            Directory.CreateDirectory(this.basePath);
+            return Task.CompletedTask;
+        }
+
+        #region Helper Methods
+
         private async Task<ServiceTagListFile> LoadServiceTagListFileAsync(string cloudId, bool forceRefresh)
         {
             var fileName = GetServiceTagListFileName(cloudId);
@@ -156,5 +166,7 @@ namespace AzureServiceTags.WebApp.Services
                 throw new ArgumentException($"Cloud identifier \"{cloudId}\" doesn't have a downloadable service tag list.");
             }
         }
+
+        #endregion
     }
 }

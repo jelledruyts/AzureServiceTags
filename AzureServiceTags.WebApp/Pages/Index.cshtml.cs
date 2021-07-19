@@ -37,7 +37,7 @@ namespace AzureServiceTags.WebApp.Pages
             this.ServiceTagListFiles = await this.serviceTagProvider.GetAllServiceTagListFilesAsync();
             if (!System.Net.IPAddress.TryParse(this.IPAddress, out System.Net.IPAddress ipAddress))
             {
-                this.WarningMessage = $"{this.IPAddress} is not a valid IP address.";
+                this.WarningMessage = $"\"{this.IPAddress}\" is not a valid IP address.";
             }
             else
             {

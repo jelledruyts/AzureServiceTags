@@ -22,7 +22,7 @@ namespace AzureServiceTags.WebApp
             services.AddApplicationInsightsTelemetry();
             services.AddHttpClient();
             services.AddSingleton<ServiceTagProvider>();
-            services.AddRazorPages().AddRazorRuntimeCompilation();
+            services.AddRazorPages();
             services.AddControllers();
             services.AddRouting(options => { options.LowercaseUrls = true; });
         }

@@ -1,8 +1,37 @@
 @page
 @model IndexModel
 @{
-    ViewData["Title"] = "IP Address Lookup";
+    ViewData["Title"] = "Home";
 }
+
+<h3>Definitions</h3>
+
+<p class="text-muted">These are the different Azure Service Tag definitions we're currently using:</p>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Cloud</th>
+            <th>Change Number</th>
+            <th>Version</th>
+            <th>Download</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var serviceTagListFile in Model.ServiceTagListFiles)
+    {
+        <tr>
+            <td><code>@serviceTagListFile.ServiceTagList.Cloud</code></td>
+            <td><code>@serviceTagListFile.ServiceTagList.ChangeNumber</code></td>
+            <td><code>@serviceTagListFile.Metadata.Version</code></td>
+            <td><a href="@serviceTagListFile.Metadata.DownloadUrl" target="_blank">Link</a></td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+<h3>IP Address Lookup</h3>
+
 <form method="POST" class="mb-3">
     <p class="text-muted">Look up an IP address to see if it's contained in any Azure Service Tag.</p>
     <div class="form-group">
@@ -29,7 +58,7 @@
     {
         <div>IP address <code>@Model.IPAddress</code> is in range of the following Azure Service Tags:</div>
         <div class="table-responsive mt-3">
-            <table class="table table-bordered table-striped table-hover ">
+            <table class="table table-bordered table-striped table-hover">
                 <thead>
                     <tr>
                         <th>Cloud</th>

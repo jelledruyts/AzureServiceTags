@@ -17,6 +17,7 @@ namespace AzureServiceTags.WebApp.Pages
         [BindProperty]
         public string IPAddress { get; set; }
 
+        public IList<ServiceTagListFile> ServiceTagListFiles { get; set; }
         public string WarningMessage { get; set; }
         public IList<MatchedServiceTag> MatchedServiceTags { get; set; }
 
@@ -26,13 +27,14 @@ namespace AzureServiceTags.WebApp.Pages
             this.serviceTagProvider = serviceTagProvider;
         }
 
-        public void OnGet()
+        public async Task OnGet()
         {
-
+            this.ServiceTagListFiles = await this.serviceTagProvider.GetAllServiceTagListFilesAsync();
         }
 
         public async Task OnPost()
         {
+            this.ServiceTagListFiles = await this.serviceTagProvider.GetAllServiceTagListFilesAsync();
             if (!System.Net.IPAddress.TryParse(this.IPAddress, out System.Net.IPAddress ipAddress))
             {
                 this.WarningMessage = $"{this.IPAddress} is not a valid IP address.";
@@ -40,8 +42,7 @@ namespace AzureServiceTags.WebApp.Pages
             else
             {
                 this.MatchedServiceTags = new List<MatchedServiceTag>();
-                var serviceTagListFiles = await this.serviceTagProvider.GetAllServiceTagListFilesAsync();
-                foreach (var serviceTagListFile in serviceTagListFiles)
+                foreach (var serviceTagListFile in this.ServiceTagListFiles)
                 {
                     foreach (var serviceTag in serviceTagListFile.ServiceTagList.Values)
                     {

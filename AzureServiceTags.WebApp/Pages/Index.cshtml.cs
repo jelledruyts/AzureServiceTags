@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -14,12 +16,11 @@ namespace AzureServiceTags.WebApp.Pages
         private readonly ILogger<IndexModel> logger;
         private readonly ServiceTagProvider serviceTagProvider;
 
-        [BindProperty]
-        public string IPAddress { get; set; }
+        [BindProperty(SupportsGet = true)]
+        public string IPAddresses { get; set; }
 
         public IList<ServiceTagListFile> ServiceTagListFiles { get; set; }
-        public string WarningMessage { get; set; }
-        public IList<MatchedServiceTag> MatchedServiceTags { get; set; }
+        public IList<IPAddressLookupResult> IPAddressLookupResults { get; set; }
 
         public IndexModel(ILogger<IndexModel> logger, ServiceTagProvider serviceTagProvider)
         {
@@ -35,23 +36,28 @@ namespace AzureServiceTags.WebApp.Pages
         public async Task OnPost()
         {
             this.ServiceTagListFiles = await this.serviceTagProvider.GetAllServiceTagListFilesAsync();
-            if (!System.Net.IPAddress.TryParse(this.IPAddress, out System.Net.IPAddress ipAddress))
+            if (!string.IsNullOrWhiteSpace(this.IPAddresses))
             {
-                this.WarningMessage = $"\"{this.IPAddress}\" is not a valid IP address.";
-            }
-            else
-            {
-                this.MatchedServiceTags = new List<MatchedServiceTag>();
-                foreach (var serviceTagListFile in this.ServiceTagListFiles)
+                this.IPAddressLookupResults = new List<IPAddressLookupResult>();
+                foreach (var ipAddressString in this.IPAddresses.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(ip => ip.Trim()))
                 {
-                    foreach (var serviceTag in serviceTagListFile.ServiceTagList.Values)
+                    var ipAddressLookupResult = new IPAddressLookupResult(ipAddressString);
+                    this.IPAddressLookupResults.Add(ipAddressLookupResult);
+                    if (System.Net.IPAddress.TryParse(ipAddressString, out System.Net.IPAddress ipAddress))
                     {
-                        foreach (var addressPrefix in serviceTag.Properties.AddressPrefixes)
+                        ipAddressLookupResult.IsIPAddressValid = true;
+                        foreach (var serviceTagListFile in this.ServiceTagListFiles)
                         {
-                            var addressRange = IPAddressRange.Parse(addressPrefix);
-                            if (addressRange.Contains(ipAddress))
+                            foreach (var serviceTag in serviceTagListFile.ServiceTagList.Values)
                             {
-                                this.MatchedServiceTags.Add(new MatchedServiceTag(this.IPAddress, serviceTagListFile.ServiceTagList.Cloud, serviceTag, addressPrefix));
+                                foreach (var addressPrefix in serviceTag.Properties.AddressPrefixes)
+                                {
+                                    var addressRange = IPAddressRange.Parse(addressPrefix);
+                                    if (addressRange.Contains(ipAddress))
+                                    {
+                                        ipAddressLookupResult.MatchedServiceTags.Add(new MatchedServiceTag(ipAddressString, serviceTagListFile.ServiceTagList.Cloud, serviceTag, addressPrefix));
+                                    }
+                                }
                             }
                         }
                     }

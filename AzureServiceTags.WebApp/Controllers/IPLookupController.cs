@@ -20,8 +20,9 @@ namespace AzureServiceTags.WebApp.Controllers
             this.ipLookupService = ipLookupService;
         }
 
-        [HttpPost("")]
-        [HttpGet("")]
+        [Route("")]
+        [HttpPost]
+        [HttpGet]
         public async Task<IList<IPLookupResult>> Get(string ipAddresses)
         {
             return await this.ipLookupService.Lookup(ipAddresses);

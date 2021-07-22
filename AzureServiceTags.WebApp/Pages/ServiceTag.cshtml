@@ -30,7 +30,7 @@
     </ol>
 }
 
-@if (Model.ServiceTags != null)
+@if (Model.ServiceTags != null && Model.ServiceTags.Any())
 {
     <h3>Service Tag <code>@Model.ServiceTags.First().ServiceTag.Id</code></h3>
     <p class="text-muted">This is all the information we have for the <code>@Model.ServiceTags.First().ServiceTag.Id</code> Service Tag:</p>

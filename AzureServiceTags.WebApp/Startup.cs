@@ -21,6 +21,7 @@ namespace AzureServiceTags.WebApp
         {
             services.AddApplicationInsightsTelemetry();
             services.AddHttpClient();
+            services.AddSingleton<IPLookupService>();
             services.AddSingleton<ServiceTagProvider>();
             services.AddRazorPages();
             services.AddControllers();

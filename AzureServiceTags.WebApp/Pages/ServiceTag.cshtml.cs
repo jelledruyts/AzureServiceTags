@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AzureServiceTags.WebApp.Services;
+using AzureServiceTags.WebApp.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
-using AzureServiceTags.WebApp.Services;
-using AzureServiceTags.WebApp.Models;
 
 namespace AzureServiceTags.WebApp.Pages
 {
@@ -18,9 +18,9 @@ namespace AzureServiceTags.WebApp.Pages
         [BindProperty(SupportsGet = true)]
         public string ServiceTagId { get; set; }
 
-        public ICollection<string> TopLevelServiceTags { get; set; }
-        public ICollection<string> ServiceTagIds { get; set; }
-        public ICollection<CloudServiceTag> ServiceTags { get; set; }
+        public IList<string> TopLevelServiceTags { get; set; }
+        public IList<string> ServiceTagIds { get; set; }
+        public IList<CloudServiceTag> ServiceTags { get; set; }
 
         public ServiceTagModel(ILogger<IndexModel> logger, ServiceTagProvider serviceTagProvider)
         {

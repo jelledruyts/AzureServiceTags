@@ -17,22 +17,22 @@
     </div>
 </form>
 
-@if (Model.IPAddressLookupResults != null)
+@if (Model.IPLookupResults != null)
 {
-    foreach (var ipAddressLookupResult in Model.IPAddressLookupResults)
+    foreach (var ipLookupResult in Model.IPLookupResults)
     {
-        <h4 class="mt-2">Result for <code>@ipAddressLookupResult.IPAddress</code></h4>
-        if (!ipAddressLookupResult.IsIPAddressValid)
+        <h4 class="mt-2">Result for <code>@ipLookupResult.IPAddress</code></h4>
+        if (!ipLookupResult.IsIPAddressValid)
         {
-            <div class="alert alert-warning"><code>@ipAddressLookupResult.IPAddress</code> is not a valid IP address.</div>
+            <div class="alert alert-warning"><code>@ipLookupResult.IPAddress</code> is not a valid IP address.</div>
         }
-        else if (!ipAddressLookupResult.MatchedServiceTags.Any())
+        else if (!ipLookupResult.MatchedServiceTags.Any())
         {
-            <div class="alert alert-warning">IP address <code>@ipAddressLookupResult.IPAddress</code> is not in range of any Service Tag.</div>
+            <div class="alert alert-warning">IP address <code>@ipLookupResult.IPAddress</code> is not in range of any Service Tag.</div>
         }
         else
         {
-            <div>IP address <code>@ipAddressLookupResult.IPAddress</code> is in range of the following Service Tags:</div>
+            <div>IP address <code>@ipLookupResult.IPAddress</code> is in range of the following Service Tags:</div>
             <div class="table-responsive mt-3">
                 <table class="table table-bordered table-striped table-hover">
                     <thead>
@@ -44,12 +44,12 @@
                         </tr>
                     </thead>
                     <tbody>
-                    @foreach (var matchedServiceTag in ipAddressLookupResult.MatchedServiceTags.OrderBy(m => m.ServiceTag.Id).ToArray())
+                    @foreach (var matchedServiceTag in ipLookupResult.MatchedServiceTags.OrderBy(m => m.ServiceTagId).ToArray())
                     {
                         <tr>
                             <td><code>@matchedServiceTag.CloudId</code></td>
-                            <td><code>@matchedServiceTag.ServiceTag.Id</code></td>
-                            <td><code>@matchedServiceTag.ServiceTag.Properties.Region</code></td>
+                            <td><a asp-page="/ServiceTag" asp-route-servicetagid="@matchedServiceTag.ServiceTagId"><code>@matchedServiceTag.ServiceTagId</code></a></td>
+                            <td><code>@matchedServiceTag.ServiceTagRegion</code></td>
                             <td><code>@matchedServiceTag.AddressPrefix</code></td>
                         </tr>
                     }

@@ -2,13 +2,13 @@ using System.Collections.Generic;
 
 namespace AzureServiceTags.WebApp.Models
 {
-    public class IPAddressLookupResult
+    public class IPLookupResult
     {
         public string IPAddress { get; set; }
         public bool IsIPAddressValid { get; set; }
         public IList<MatchedServiceTag> MatchedServiceTags { get; set; }
 
-        public IPAddressLookupResult(string ipAddress)
+        public IPLookupResult(string ipAddress)
         {
             this.IPAddress = ipAddress;
             this.MatchedServiceTags = new List<MatchedServiceTag>();

@@ -3,12 +3,11 @@ namespace AzureServiceTags.WebApp.Models
     public class ServiceTagProperties
     {
         public string[] AddressPrefixes { get; set; }
-        public object ChangeNumber { get; set; } // In download: int; in API: string
-        public string[] NetworkFeatures { get; set; }
+        public int ChangeNumber { get; set; }
+        public string[] NetworkFeatures { get; set; } // "API", "NSG", "UDR", "FW", "VSE"
         public string Region { get; set; }
-        public int RegionId { get; set; } // Only in download
-        public string State { get; set; } // Only in API
-        public string Platform { get; set; } // Only in download
+        public int RegionId { get; set; }
+        public string Platform { get; set; } // Value is always "Azure"
         public string SystemService { get; set; }
     }
 }

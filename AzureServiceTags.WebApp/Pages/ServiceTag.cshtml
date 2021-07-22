@@ -1,0 +1,70 @@
+@page "{ServiceTagId?}"
+@model ServiceTagModel
+@{
+    ViewData["Title"] = "Explore";
+}
+
+@if (Model.TopLevelServiceTags != null)
+{
+    <h3>Top-level Service Tags</h3>
+    <p class="text-muted">These are all the published top-level Service Tags:</p>
+
+    <ol>
+    @foreach (var topLevelServiceTag in Model.TopLevelServiceTags)
+    {
+        <li><a asp-page="/ServiceTag" asp-route-servicetagid="@(topLevelServiceTag + '*')"><code>@topLevelServiceTag</code></a></li>
+    }
+    </ol>
+}
+
+@if (Model.ServiceTagIds != null)
+{
+    <h3>Service Tags</h3>
+    <p class="text-muted">These are all the Service Tags matching <code>@Model.ServiceTagId</code>:</p>
+
+    <ol>
+    @foreach (var serviceTagId in Model.ServiceTagIds)
+    {
+        <li><a asp-page="/ServiceTag" asp-route-servicetagid="@serviceTagId"><code>@serviceTagId</code></a></li>
+    }
+    </ol>
+}
+
+@if (Model.ServiceTags != null)
+{
+    <h3>Service Tag <code>@Model.ServiceTags.First().ServiceTag.Id</code></h3>
+    <p class="text-muted">This is all the information we have for the <code>@Model.ServiceTags.First().ServiceTag.Id</code> Service Tag:</p>
+
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Cloud</th>
+                <th>Region</th>
+                <th>Change Number</th>
+                <th>System Service</th>
+                <th>Network Features</th>
+                <th>Address Prefixes</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var serviceTag in Model.ServiceTags)
+        {
+            <tr>
+                <td><code>@serviceTag.Cloud</code></td>
+                <td><code>@serviceTag.ServiceTag.Properties.Region</code></td>
+                <td>@serviceTag.ServiceTag.Properties.ChangeNumber</td>
+                <td><code>@serviceTag.ServiceTag.Properties.SystemService</code></td>
+                <td>@string.Join(", ", serviceTag.ServiceTag.Properties.NetworkFeatures ?? Array.Empty<string>())</td>
+                <td>
+                    <ul class="list-unstyled">
+                    @foreach (var addressPrefix in serviceTag.ServiceTag.Properties.AddressPrefixes)
+                    {
+                        <li><code>@addressPrefix</code></li>
+                    }
+                    </ul>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}

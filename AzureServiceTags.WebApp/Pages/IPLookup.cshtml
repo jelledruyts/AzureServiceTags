@@ -1,0 +1,61 @@
+@page
+@model IPLookupModel
+@{
+    ViewData["Title"] = "IP Lookup";
+}
+
+<h3>@ViewData["Title"]</h3>
+
+<form method="POST" class="mb-3">
+    <p class="text-muted">Look up IPv4 or IPv6 addresses to see if they're contained in any Service Tag (separate multiple entries with a comma).</p>
+    <div class="form-group">
+        <label for="ipAddresses">IP Addresses</label>
+        <input type="text" name="ipAddresses" id="ipAddresses" value="@Model.IPAddresses" class="form-control val-required" placeholder="The IP addresses to look up" />
+    </div>
+    <div class="form-group mt-3">
+        <input type="submit" value="Lookup" class="btn btn-primary" />
+    </div>
+</form>
+
+@if (Model.IPAddressLookupResults != null)
+{
+    foreach (var ipAddressLookupResult in Model.IPAddressLookupResults)
+    {
+        <h4 class="mt-2">Result for <code>@ipAddressLookupResult.IPAddress</code></h4>
+        if (!ipAddressLookupResult.IsIPAddressValid)
+        {
+            <div class="alert alert-warning"><code>@ipAddressLookupResult.IPAddress</code> is not a valid IP address.</div>
+        }
+        else if (!ipAddressLookupResult.MatchedServiceTags.Any())
+        {
+            <div class="alert alert-warning">IP address <code>@ipAddressLookupResult.IPAddress</code> is not in range of any Service Tag.</div>
+        }
+        else
+        {
+            <div>IP address <code>@ipAddressLookupResult.IPAddress</code> is in range of the following Service Tags:</div>
+            <div class="table-responsive mt-3">
+                <table class="table table-bordered table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Cloud</th>
+                            <th>Service Tag</th>
+                            <th>Region</th>
+                            <th>Matching Address Prefix</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var matchedServiceTag in ipAddressLookupResult.MatchedServiceTags.OrderBy(m => m.ServiceTag.Id).ToArray())
+                    {
+                        <tr>
+                            <td><code>@matchedServiceTag.CloudId</code></td>
+                            <td><code>@matchedServiceTag.ServiceTag.Id</code></td>
+                            <td><code>@matchedServiceTag.ServiceTag.Properties.Region</code></td>
+                            <td><code>@matchedServiceTag.AddressPrefix</code></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+}

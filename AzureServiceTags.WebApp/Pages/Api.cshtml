@@ -1,0 +1,34 @@
+@page
+@{
+    ViewData["Title"] = "API";
+}
+
+<h3>@ViewData["Title"]</h3>
+<p class="text-muted">You can use the REST API's below.</p>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Method</th>
+            <th>Path</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>GET</td>
+            <td>@Url.Action("Get", "IPLookup", new { ipAddresses = "<ipAddresses>" }).Replace("%3C", "<").Replace("%3E", ">")</td>
+            <td>Returns the results of a lookup of the specified <code>ipAddresses</code> (comma separated).</td>
+        </tr>
+        <tr>
+            <td>GET</td>
+            <td>@Url.Action("List", "ServiceTag", new { serviceTagId = "<serviceTagId>", cloudId= "<cloudId>" }).Replace("%3C", "<").Replace("%3E", ">")</td>
+            <td>Returns information for the specified <code>serviceTagId</code>, optionally filtered by <code>cloudId</code>.</td>
+        </tr>
+        <tr>
+            <td>GET</td>
+            <td>@Url.Action("AddressPrefixes", "ServiceTag", new { serviceTagId = "<serviceTagId>", cloudId= "<cloudId>" }).Replace("%3C", "<").Replace("%3E", ">")</td>
+            <td>Returns the address prefixes for the specified <code>serviceTagId</code>, optionally filtered by <code>cloudId</code>.</td>
+        </tr>
+    </tbody>
+</table>

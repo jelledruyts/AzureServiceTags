@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AzureServiceTags.WebApp.Models;
 using AzureServiceTags.WebApp.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -21,8 +22,26 @@ namespace AzureServiceTags.WebApp.Controllers
             this.serviceTagProvider = serviceTagProvider;
         }
 
+        [Route("{serviceTagId}")]
+        [HttpGet]
+        public async Task<IActionResult> List(string serviceTagId, string cloudId)
+        {
+            var serviceTags = new List<CloudServiceTag>();
+            var serviceTagListFiles = await this.serviceTagProvider.GetAllServiceTagListFilesAsync();
+            foreach (var serviceTagList in serviceTagListFiles.Select(s => s.ServiceTagList))
+            {
+                if (cloudId == null || string.Equals(cloudId, serviceTagList.Cloud, StringComparison.OrdinalIgnoreCase))
+                {
+                    serviceTags.AddRange(serviceTagList.Values
+                        .Where(s => string.Equals(serviceTagId, s.Id, StringComparison.OrdinalIgnoreCase))
+                        .Select(s => new CloudServiceTag(serviceTagList, s))
+                    );
+                }
+            }
+            return Ok(serviceTags);
+        }
+
         [Route("{serviceTagId}/" + nameof(AddressPrefixes))]
-        [HttpPost]
         [HttpGet]
         public async Task<IActionResult> AddressPrefixes(string serviceTagId, string cloudId)
         {

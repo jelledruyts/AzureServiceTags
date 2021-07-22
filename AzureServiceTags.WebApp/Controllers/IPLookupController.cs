@@ -21,7 +21,6 @@ namespace AzureServiceTags.WebApp.Controllers
         }
 
         [Route("")]
-        [HttpPost]
         [HttpGet]
         public async Task<IList<IPLookupResult>> Get(string ipAddresses)
         {

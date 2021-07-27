@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AzureServiceTags.WebApp.Models;
@@ -24,11 +25,17 @@ namespace AzureServiceTags.WebApp.Pages
             this.ipLookupService = ipLookupService;
         }
 
-        public void OnGet()
+        public Task OnGet()
         {
+            return ExecuteCoreAsync();
         }
 
-        public async Task OnPost()
+        public Task OnPost()
+        {
+            return ExecuteCoreAsync();
+        }
+
+        private async Task ExecuteCoreAsync()
         {
             this.IPLookupResults = await this.ipLookupService.Lookup(this.IPAddresses);
         }

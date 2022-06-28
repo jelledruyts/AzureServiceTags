@@ -17,6 +17,12 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: '3.1.x'
+    - name: Azure Login
+      uses: Azure/login@v1
+      with:
+        client-id: 'a96f7b48-548a-4083-8a8a-69440bdc0a4b'
+        tenant-id: 'bfcb8d36-2e08-4142-908c-27eb5be24938'
+        subscription-id: '6c198425-f933-458f-a8f2-951a4c981997'
     # Build
     - name: Determine version
       run: echo "APP_VERSION=$(date +'%Y.%m.%d').$GITHUB_RUN_NUMBER" >> $GITHUB_ENV
@@ -31,5 +37,4 @@ jobs:
       uses: Azure/webapps-deploy@v2
       with:
         app-name: azservicetags
-        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_AZURESERVICETAGS_WEBAPP }}
         package: "./packages/AzureServiceTags.WebApp"

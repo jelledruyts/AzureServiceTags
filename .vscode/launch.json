@@ -10,7 +10,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/AzureServiceTags.WebApp/bin/Debug/netcoreapp3.1/AzureServiceTags.WebApp.dll",
+            "program": "${workspaceFolder}/AzureServiceTags.WebApp/bin/Debug/net7.0/AzureServiceTags.WebApp.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,

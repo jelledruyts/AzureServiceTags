@@ -92,25 +92,13 @@ namespace AzureServiceTags.WebApp.Services
             try
             {
                 var downloadId = GetDownloadId(cloudId);
-                var confirmationUrl = $"https://www.microsoft.com/en-us/download/confirmation.aspx?id={downloadId}";
+                var detailsUrl = $"https://www.microsoft.com/en-us/download/details.aspx?id={downloadId}";
                 this.logger.LogDebug($"Downloading service tag confirmation page for cloud \"{cloudId}\"");
                 var httpClient = this.httpClientFactory.CreateClient();
-                var confirmationPage = await httpClient.GetStringAsync(confirmationUrl);
-                var downloadUrlStartTag = "meta http-equiv=\"refresh\" content=\"0;url=";
-                var downloadUrlStartIndex = confirmationPage.IndexOf(downloadUrlStartTag, StringComparison.InvariantCultureIgnoreCase);
-                if (downloadUrlStartIndex < 0)
-                {
-                    throw new ArgumentException($"Could not determine download URL for cloud \"{cloudId}\" (missing start tag).");
-                }
-
-                downloadUrlStartIndex += downloadUrlStartTag.Length;
-                var downloadUrlEndIndex = confirmationPage.IndexOf('"', downloadUrlStartIndex);
-                if (downloadUrlEndIndex < 0)
-                {
-                    throw new ArgumentException($"Could not determine download URL for cloud \"{cloudId}\" (missing end tag).");
-                }
-
-                var downloadUrl = confirmationPage.Substring(downloadUrlStartIndex, downloadUrlEndIndex - downloadUrlStartIndex);
+                var detailsPage = await httpClient.GetStringAsync(detailsUrl);
+                var downloadUrlStartIndex = detailsPage.IndexOf("https://download.microsoft.com", StringComparison.OrdinalIgnoreCase);
+                var downloadUrlEndIndex = detailsPage.IndexOf("\"", downloadUrlStartIndex, StringComparison.OrdinalIgnoreCase);
+                var downloadUrl = detailsPage.Substring(downloadUrlStartIndex, downloadUrlEndIndex - downloadUrlStartIndex);
                 this.logger.LogDebug($"Downloading service tag list for cloud \"{cloudId}\" from \"{downloadUrl}\"");
                 using (var response = await httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead))
                 using (var responseStream = await response.Content.ReadAsStreamAsync())

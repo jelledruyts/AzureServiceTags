@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using AzureServiceTags.WebApp.Models;
+using Microsoft.Extensions.Logging;
 
 namespace AzureServiceTags.WebApp.Services
 {
@@ -88,39 +89,73 @@ namespace AzureServiceTags.WebApp.Services
 
         private async Task DownloadServiceTagListFileAsync(string cloudId, string fileName, string metadataFileName)
         {
-            ServiceTagListFileMetadata metadata;
+            var metadata = default(ServiceTagListFileMetadata);
             try
             {
+                // Get the download web page for the service tags, which contains the download links.
                 var downloadId = GetDownloadId(cloudId);
                 var detailsUrl = $"https://www.microsoft.com/en-us/download/details.aspx?id={downloadId}";
                 this.logger.LogDebug($"Downloading service tag confirmation page for cloud \"{cloudId}\"");
                 var httpClient = this.httpClientFactory.CreateClient();
                 var detailsPage = await httpClient.GetStringAsync(detailsUrl);
-                var downloadUrlStartIndex = detailsPage.IndexOf("https://download.microsoft.com", StringComparison.OrdinalIgnoreCase);
-                var downloadUrlEndIndex = detailsPage.IndexOf("\"", downloadUrlStartIndex, StringComparison.OrdinalIgnoreCase);
-                var downloadUrl = detailsPage.Substring(downloadUrlStartIndex, downloadUrlEndIndex - downloadUrlStartIndex);
-                this.logger.LogDebug($"Downloading service tag list for cloud \"{cloudId}\" from \"{downloadUrl}\"");
-                using (var response = await httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead))
-                using (var responseStream = await response.Content.ReadAsStreamAsync())
+
+                // Find all the download URLs for the service tag files (there could be multiple).
+                var downloadUrls = new List<string>();
+                var downloadUrlStartIndex = 0;
+                while (downloadUrlStartIndex >= 0)
                 {
-                    this.logger.LogDebug($"Saving service tag list for cloud \"{cloudId}\" to \"{fileName}\"");
-                    using (var outputStream = File.Open(fileName, FileMode.Create))
+                    downloadUrlStartIndex = detailsPage.IndexOf("https://download.microsoft.com", downloadUrlStartIndex, StringComparison.OrdinalIgnoreCase);
+                    if (downloadUrlStartIndex >= 0)
                     {
-                        await responseStream.CopyToAsync(outputStream);
+                        var downloadUrlEndIndex = detailsPage.IndexOf("\"", downloadUrlStartIndex, StringComparison.OrdinalIgnoreCase);
+                        var downloadUrl = detailsPage.Substring(downloadUrlStartIndex, downloadUrlEndIndex - downloadUrlStartIndex);
+                        downloadUrls.Add(downloadUrl);
+                        downloadUrlStartIndex = downloadUrlEndIndex;
                     }
-                    metadata = new ServiceTagListFileMetadata(downloadUrl);
+                }
+
+                if (!downloadUrls.Any())
+                {
+                    this.logger.LogError($"Could not find any download URLs for service tags for cloud \"{cloudId}\" in \"{detailsUrl}\"");
+                }
+                else
+                {
+                    // Take the latest download URL, based on alphabetic sorting given the file names include a sortable date,
+                    // for example "ServiceTags_China_20250728.json" and "ServiceTags_China_20250804.json".
+                    var latestDownloadUrl = downloadUrls.OrderBy(u => u, StringComparer.OrdinalIgnoreCase).LastOrDefault();
+
+                    // Download the latest service tag list.
+                    this.logger.LogDebug($"Downloading service tag list for cloud \"{cloudId}\" from \"{latestDownloadUrl}\"");
+                    using (var response = await httpClient.GetAsync(latestDownloadUrl, HttpCompletionOption.ResponseHeadersRead))
+                    using (var responseStream = await response.Content.ReadAsStreamAsync())
+                    {
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            this.logger.LogError($"Could not download service tag list for cloud \"{cloudId}\" from \"{latestDownloadUrl}\": {response.ReasonPhrase}");
+                        }
+                        else
+                        {
+                            this.logger.LogDebug($"Saving service tag list for cloud \"{cloudId}\" to \"{fileName}\"");
+                            using (var outputStream = File.Open(fileName, FileMode.Create))
+                            {
+                                await responseStream.CopyToAsync(outputStream);
+                            }
+                            metadata = new ServiceTagListFileMetadata(latestDownloadUrl);
+                        }
+                    }
                 }
             }
             catch (Exception exc)
             {
                 this.logger.LogError(exc, $"Could not download service tag list for cloud \"{cloudId}\"");
 
+                // If the file could not be downloaded, reload it from the cache if available.
                 this.logger.LogDebug($"Reading service tag list metadata for cloud \"{cloudId}\" from file \"{metadataFileName}\"");
                 metadata = await ReadFileAsync<ServiceTagListFileMetadata>(metadataFileName);
-                if (metadata == null)
-                {
-                    metadata = new ServiceTagListFileMetadata();
-                }
+            }
+            if (metadata == null)
+            {
+                metadata = new ServiceTagListFileMetadata();
                 metadata.LastDownloadAttemptedTime = DateTimeOffset.UtcNow;
             }
             this.logger.LogDebug($"Saving service tag list metadata for cloud \"{cloudId}\" to \"{metadataFileName}\"");

@@ -19,7 +19,10 @@ namespace AzureServiceTags.WebApp
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddApplicationInsightsTelemetry();
+            if (!string.IsNullOrEmpty(Configuration["ApplicationInsights:ConnectionString"]))
+            {
+                services.AddApplicationInsightsTelemetry();
+            }
             services.AddHttpClient();
             services.AddSingleton<IPLookupService>();
             services.AddSingleton<ServiceTagProvider>();
